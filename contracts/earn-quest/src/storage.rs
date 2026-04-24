@@ -44,6 +44,8 @@ pub enum DataKey {
     QuestIds,
     PlatformStats,
     CreatorStats(Address),
+    /// Tracks whether a user has ever submitted (for unique active-user counting)
+    SeenUser(Address),
 }
 
 //================================================================================
@@ -856,4 +858,22 @@ pub fn set_creator_stats(env: &Env, creator: &Address, stats: &CreatorStats) {
     env.storage()
         .instance()
         .set(&DataKey::CreatorStats(creator.clone()), stats);
+}
+
+//================================================================================
+// Unique User Tracking (for platform active-user counter)
+//================================================================================
+
+/// Returns true if this address has ever submitted a proof.
+pub fn is_seen_user(env: &Env, user: &Address) -> bool {
+    env.storage()
+        .instance()
+        .has(&DataKey::SeenUser(user.clone()))
+}
+
+/// Mark a user as seen (called on first submission).
+pub fn mark_seen_user(env: &Env, user: &Address) {
+    env.storage()
+        .instance()
+        .set(&DataKey::SeenUser(user.clone()), &true);
 }

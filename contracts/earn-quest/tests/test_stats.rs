@@ -16,6 +16,7 @@
 #![cfg(test)]
 
 use soroban_sdk::testutils::{Address as _, Ledger, LedgerInfo};
+use soroban_sdk::token::StellarAssetClient;
 use soroban_sdk::{symbol_short, Address, BytesN, Env};
 
 use earn_quest::{EarnQuestContract, EarnQuestContractClient};
@@ -52,7 +53,8 @@ fn setup(env: &Env) -> (EarnQuestContractClient, Address) {
 }
 
 fn mock_token(env: &Env) -> Address {
-    Address::generate(env)
+    let token_admin = Address::generate(env);
+    env.register_stellar_asset_contract_v2(token_admin).address()
 }
 
 fn register_quest(
@@ -89,10 +91,16 @@ fn full_lifecycle(
     reward_amount: i128,
 ) -> soroban_sdk::Symbol {
     let quest_id = symbol_short!(quest_sym);
-    let token = mock_token(env);
+    let token_admin = Address::generate(env);
+    let token_obj = env.register_stellar_asset_contract_v2(token_admin.clone());
+    let token = token_obj.address();
+    let token_mint_client = StellarAssetClient::new(env, &token);
     let verifier = Address::generate(env);
     let deadline = env.ledger().timestamp() + 86_400;
     client.register_quest(&quest_id, creator, &token, &reward_amount, &verifier, &deadline);
+    // Mint reward tokens directly to the contract so claim_reward can transfer them
+    let contract_id = client.address.clone();
+    token_mint_client.mint(&contract_id, &reward_amount);
     let proof: BytesN<32> = BytesN::from_array(env, &[2u8; 32]);
     client.submit_proof(&quest_id, submitter, &proof);
     client.approve_submission(&quest_id, submitter, &verifier);

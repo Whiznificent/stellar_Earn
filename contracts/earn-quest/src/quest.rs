@@ -46,6 +46,18 @@ pub fn register_quest(
     storage::set_quest(env, id, &quest);
     storage::add_quest_id(env, id);
 
+    // Update platform stats
+    let mut platform = storage::get_platform_stats(env);
+    platform.total_quests_created += 1;
+    platform.total_rewards_distributed += reward_amount as u128;
+    storage::set_platform_stats(env, &platform);
+
+    // Update creator stats
+    let mut creator_stats = storage::get_creator_stats(env, creator);
+    creator_stats.quests_created += 1;
+    creator_stats.total_rewards_posted += reward_amount as u128;
+    storage::set_creator_stats(env, creator, &creator_stats);
+
     events::quest_registered(
         env,
         id.clone(),
