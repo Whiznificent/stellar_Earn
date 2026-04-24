@@ -1,6 +1,7 @@
 use crate::storage;
 use soroban_sdk::{Address, Env, String, Vec};
 
+#[derive(Clone)]
 pub struct InitConfig {
     pub admin: Address,
     pub version: u32,

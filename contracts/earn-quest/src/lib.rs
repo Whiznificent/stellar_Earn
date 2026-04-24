@@ -25,12 +25,14 @@ pub struct EarnQuestContract;
 impl EarnQuestContract {
     pub fn initialize(env: Env, admin: Address) {
         admin.require_auth();
-        if storage::is_initialized(&env) {
-            panic!("already initialized");
-        }
-        storage::set_contract_admin(&env, &admin);
-        storage::set_admin(&env, &admin);
-        storage::mark_initialized(&env);
+        init::initialize(
+            &env,
+            init::InitConfig {
+                admin,
+                version: 1,
+                config_params: Vec::new(&env),
+            },
+        );
     }
 
     pub fn authorize_upgrade(env: Env, caller: Address) -> Result<(), Error> {
@@ -213,6 +215,15 @@ impl EarnQuestContract {
         );
 
         reputation::award_xp(&env, &submitter, 100)?;
+
+        // Update platform and creator stats
+        let mut platform = storage::get_platform_stats(&env);
+        platform.total_rewards_claimed += 1;
+        storage::set_platform_stats(&env, &platform);
+
+        let mut creator_stats = storage::get_creator_stats(&env, &quest.creator);
+        creator_stats.total_claims_paid += 1;
+        storage::set_creator_stats(&env, &quest.creator, &creator_stats);
 
         Ok(())
     }

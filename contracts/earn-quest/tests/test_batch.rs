@@ -159,18 +159,6 @@ fn test_register_quests_batch_emits_events() {
         reg_count >= 2,
         "expected at least 2 quest_reg events, got {}",
         reg_count
-    let reg_events = events
-        .iter()
-        .filter(|e| {
-            let topics = &e.1;
-            let t0: Symbol = Symbol::try_from_val(&env, &topics.get(0).unwrap()).unwrap();
-            t0 == symbol_short!("quest_reg")
-        })
-        .count();
-    assert!(
-        reg_events >= 2,
-        "expected at least 2 quest_reg events, got {}",
-        reg_events
     );
 }
 
@@ -348,16 +336,6 @@ fn test_approve_submissions_batch_emits_events() {
     }
     assert!(
         appr_count >= 1,
-    let appr_events = events
-        .iter()
-        .filter(|e| {
-            let topics = &e.1;
-            let t0: Symbol = Symbol::try_from_val(&env, &topics.get(0).unwrap()).unwrap();
-            t0 == symbol_short!("sub_appr")
-        })
-        .count();
-    assert!(
-        appr_events >= 1,
         "expected at least 1 submission_approved event"
     );
 }

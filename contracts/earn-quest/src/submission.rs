@@ -23,8 +23,6 @@ pub fn submit_proof(
     validation::validate_quest_is_active(&quest.status)?;
     // Validate quest has not expired
     validation::validate_quest_not_expired(env, quest.deadline)?;
-    // Validate submitter address
-    validation::validate_badge_count(0)?; // Example: badge count check for submitter
 
     let submission = Submission {
         quest_id: quest_id.clone(),
@@ -35,6 +33,21 @@ pub fn submit_proof(
     };
 
     storage::set_submission(env, quest_id, submitter, &submission);
+
+    // Update platform stats
+    let mut platform = storage::get_platform_stats(env);
+    platform.total_submissions += 1;
+    // Track unique active users: only increment if this user has never submitted before
+    if !storage::is_seen_user(env, submitter) {
+        platform.total_active_users += 1;
+        storage::mark_seen_user(env, submitter);
+    }
+    storage::set_platform_stats(env, &platform);
+
+    // Update creator stats
+    let mut creator_stats = storage::get_creator_stats(env, &quest.creator);
+    creator_stats.total_submissions_received += 1;
+    storage::set_creator_stats(env, &quest.creator, &creator_stats);
 
     // EMIT EVENT: ProofSubmitted
     events::proof_submitted(env, quest_id.clone(), submitter.clone(), proof_hash.clone());
@@ -67,8 +80,6 @@ pub fn approve_submission(
         &submission.status,
         &SubmissionStatus::Approved,
     )?;
-    // Validate verifier address
-    validation::validate_addresses_distinct(verifier, &quest.verifier)?;
 
     // ═══════════════════════════════════════════════════════
     // ADD THIS BLOCK — escrow check before approval
